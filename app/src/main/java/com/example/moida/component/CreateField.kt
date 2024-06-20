@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,13 +58,14 @@ fun FieldTitle(
 @Composable
 fun NameTextField(
     title: String,
+    name: String,
     onValueChange: (String) -> Unit,
-    placeHolderString: String = "일정 이름 입력"
+    placeHolderString: String
 ) {
     Column(
         modifier = Modifier
     ) {
-        var name by remember { mutableStateOf("") }
+        var name by remember { mutableStateOf(name) }
         var isFocused by remember { mutableStateOf(false) }
 
         FieldTitle(title = title)
@@ -97,7 +99,8 @@ fun NameTextField(
                 //입력이 안되어 있을 땐 아이콘 안보이게
             }
         }
-        val lineColor = if (isFocused) colorResource(id = R.color.main_blue) else colorResource(id = R.color.gray_300)
+        val lineColor =
+            if (isFocused) colorResource(id = R.color.main_blue) else colorResource(id = R.color.gray_300)
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -169,18 +172,33 @@ fun InputEditText(
 fun DateField(
     navController: NavHostController,
     title: String,
+    date: String,
     onValueChange: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier
     ) {
-        var date by remember { mutableStateOf("") }
+        var date by remember { mutableStateOf(date) }
+
+        LaunchedEffect(navController.currentBackStackEntry) {
+            navController.currentBackStackEntry
+                ?.savedStateHandle
+                ?.getLiveData<String>("selectedDate")
+                ?.value
+                ?.let { newDate->
+                    date = newDate
+                    onValueChange(date)
+                }
+        }
 
         FieldTitle(title = title)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 10.dp),
+                .padding(top = 10.dp)
+                .clickable {
+                    navController.navigate(Routes.CalendarBottomSheet.route)
+                },
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             if (date.isEmpty()) {
@@ -208,9 +226,6 @@ fun DateField(
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(16.dp)
-                    .clickable {
-                        navController.navigate(Routes.CalendarBottomSheet.route)
-                    }
             )
         }
         Canvas(
@@ -232,15 +247,30 @@ fun DateField(
 fun TimeField(
     navController: NavHostController,
     title: String,
+    time: String,
     onValueChange: (String) -> Unit
 ) {
-    var time by remember { mutableStateOf("") }
+    var time by remember { mutableStateOf(time) }
+
+    LaunchedEffect(navController.currentBackStackEntry) {
+        navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.getLiveData<String>("selectedTime")
+            ?.value
+            ?.let { newTime->
+                time = newTime
+                onValueChange(time)
+            }
+    }
 
     FieldTitle(title = title)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 10.dp),
+            .padding(top = 10.dp)
+            .clickable {
+                navController.navigate(Routes.TimePicker.route)
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         if (time.isEmpty()) {
@@ -268,9 +298,6 @@ fun TimeField(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(16.dp)
-                .clickable {
-
-                }
         )
     }
     Canvas(

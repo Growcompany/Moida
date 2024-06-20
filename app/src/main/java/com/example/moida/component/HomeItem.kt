@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.moida.R
 import com.example.moida.model.GroupItemData
 import com.example.moida.model.TodayItemData
@@ -272,7 +271,7 @@ fun TodayItemList(todayItemCount: Int, title: String) {
 }
 
 @Composable
-fun UpcomingItemList(upcomingViewModel: UpcomingViewModel = viewModel()) {
+fun UpcomingItemList(upcomingViewModel: UpcomingViewModel) {
     Column(
         modifier = Modifier
             .padding(horizontal = 24.dp)

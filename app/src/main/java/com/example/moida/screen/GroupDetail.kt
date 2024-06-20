@@ -1,5 +1,3 @@
-package com.example.moida.screen
-
 import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,7 +9,6 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,7 +27,7 @@ import com.example.moida.component.TodayItemList
 import com.example.moida.model.GroupDetailViewModel
 import com.example.moida.model.GroupDetailViewModelFactory
 import com.example.moida.model.Meeting
-import com.example.moida.model.UpcomingViewModel
+import com.example.moida.screen.MeetingManager
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -43,13 +40,6 @@ fun GroupDetail(
     val groupDetailViewModel: GroupDetailViewModel = viewModel(
         factory = GroupDetailViewModelFactory(meeting)
     ) // 각 그룹에 들어올 때마다 넘겨받은 meeting 정보로 뷰모델을 세팅해줌
-
-    val upcomingViewModel: UpcomingViewModel = viewModel()
-
-    // Fetch upcoming items for the group
-    LaunchedEffect(Unit) {
-        upcomingViewModel.fetchUpcomingItems(meeting.id)
-    }
 
     val groupInfo by groupDetailViewModel.groupInfo.collectAsState()
     val itemList by groupDetailViewModel.itemList.collectAsState()
@@ -67,7 +57,25 @@ fun GroupDetail(
         drawerState = drawerState,
         gesturesEnabled = true, // 사이드바 슬라이드로 열고 닫기 가능
         drawerContent = {
-            groupInfo?.let { DrawerContent(group = it, drawerState, scope)}
+            groupInfo?.let {
+                DrawerContent(
+                    group = it,
+                    drawerState = drawerState,
+                    scope = scope,
+                    onDeleteMeeting = { meetingId ->
+                        Log.d("GroupDetail", "onDeleteMeeting called with meetingId: $meetingId")
+                        val meetingManager = MeetingManager()
+                        meetingManager.deleteMeeting(meetingId)
+                        navController.popBackStack()
+                    },
+                    onLeaveMeeting = { meetingId ->
+                        Log.d("GroupDetail", "onLeaveMeeting called with meetingId: $meetingId")
+                        val meetingManager = MeetingManager()
+                        meetingManager.leaveMeeting(meetingId)
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
     ) {
         LazyColumn(
@@ -76,28 +84,29 @@ fun GroupDetail(
         ) {
             item {
                 groupInfo?.let {
-                    GroupDetailTitle(group = it, onMenuClick = {
-                        scope.launch {
-                            drawerState.open()
+                    GroupDetailTitle(
+                        group = it,
+                        onMenuClick = {
+                            scope.launch { drawerState.open() }
                         }
-                    }, navController = navController)
+                        , navController = navController)
                 }
             }
-            item{
+            item {
                 MainCalendar(
                     events = todayEvents,
-                    onDateClick = {date ->
+                    onDateClick = { date ->
                         selectedEvents = todayEvents[date].orEmpty()
                     },
-                    updateTitle = {it ->
+                    updateTitle = { it ->
                         title = it
                     },
-                    hasEvents = {date, events ->
+                    hasEvents = { date, events ->
                         events[date]?.isNotEmpty() == true
                     }
                 )
             }
-            item{
+            item {
                 TodayItemList(selectedEvents.size, title)
             }
             // 오늘의 일정 리스트
@@ -115,5 +124,4 @@ fun GroupDetail(
             }
         }
     }
-
 }

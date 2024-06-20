@@ -14,10 +14,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,19 +26,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.moida.R
+import com.example.moida.model.GroupInfo
+import com.example.moida.model.Meeting
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
-import com.example.moida.model.Meeting
+import generateUniqueCode
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateMeetingScreen(
     onDismiss: () -> Unit,
-    onCreate: (Meeting) -> Unit
+    onCreate: (GroupInfo) -> Unit
 ) {
     var groupName by remember { mutableStateOf("") }
-    val database = FirebaseDatabase.getInstance().reference
+    val db = FirebaseFirestore.getInstance()
+    val realtimeDb = FirebaseDatabase.getInstance().reference
+    val auth = FirebaseAuth.getInstance()
+    val user = auth.currentUser
 
     Column(modifier = Modifier.padding(16.dp)) {
         Row(
@@ -51,9 +56,6 @@ fun CreateMeetingScreen(
             }
             Text(text = "모임 추가하기", fontWeight = FontWeight.Bold, fontSize = 20.sp)
             TextButton(onClick = {
-                val auth = FirebaseAuth.getInstance()
-                val db = FirebaseFirestore.getInstance()
-                val user = auth.currentUser
                 if (user != null) {
                     db.collection("users").document(user.uid).get()
                         .addOnSuccessListener { document ->
@@ -71,21 +73,44 @@ fun CreateMeetingScreen(
                                         )
                                     )
                                 )
-                                // Firebase Realtime Database에 데이터 저장
-                                database.child("groups").push().setValue(meeting)
-                                    .addOnSuccessListener {
-                                        // 데이터베이스에 저장 성공 시 호출되는 부분
-                                        onCreate(meeting)
-                                        Log.d("CreateMeetingScreen", "Meeting saved to Firebase: $meeting")
+
+                                // Firestore에 데이터 추가
+                                db.collection("groups")
+                                    .add(meeting)
+                                    .addOnSuccessListener { documentReference ->
+                                        val documentId = documentReference.id
+                                        val meetingWithId = meeting.copy(id = documentId)
+                                        db.collection("groups").document(documentId)
+                                            .set(meetingWithId)
+                                            .addOnSuccessListener {
+                                                Log.d("CreateMeeting", "Meeting ID updated: $documentId")
+                                                val groupInfo = GroupInfo(
+                                                    groupId = documentId,
+                                                    groupName = groupName,
+                                                    groupImg = meeting.imageRes,
+                                                    memberCount = meeting.members.size
+                                                )
+                                                onCreate(groupInfo)
+
+                                                // Realtime Database에 데이터 추가
+                                                realtimeDb.child("groups").child(documentId).setValue(meetingWithId)
+                                                    .addOnSuccessListener {
+                                                        Log.d("CreateMeeting", "Meeting saved to Realtime Database")
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        Log.e("CreateMeeting", "Error saving meeting to Realtime Database", e)
+                                                    }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                Log.w("CreateMeeting", "Error updating meeting ID", e)
+                                            }
                                     }
                                     .addOnFailureListener { e ->
-                                        // 데이터베이스에 저장 실패 시 호출되는 부분
-                                        Log.e("CreateMeetingScreen", "Error saving meeting to Firebase", e)
+                                        Log.w("CreateMeeting", "Error adding meeting", e)
                                     }
                             }
                         }
                         .addOnFailureListener { e ->
-                            // Firestore에서 사용자 데이터 가져오기 실패 시 호출되는 부분
                             Log.e("CreateMeetingScreen", "Error fetching user data", e)
                         }
                 }

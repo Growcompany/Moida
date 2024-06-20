@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.moida.R
+import com.example.moida.model.BottomNavItem
 import com.example.moida.model.GroupDetailViewModel
 import com.example.moida.model.GroupInfo
 import com.example.moida.model.Routes
@@ -72,6 +73,19 @@ fun Title(
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp
         )
+
+        if (rightBtn=="햄버거") {
+            Image(
+                painter = painterResource(id = R.drawable.ic_dots_vertical),
+                contentDescription = "뒤로가기",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable {
+
+                    }
+            )
+        }
 
         if (rightColor != null) {
             Text(
@@ -158,12 +172,12 @@ fun HomeTitle(
     ) {
         Icon(
             painter = painterResource(id = R.drawable.moida_logo),
-            contentDescription = "로고"
+            contentDescription = "로고",
         )
 
         OutlinedButton(
             onClick = {
-                navController.navigate(Routes.CreateGroupSchedule.route)
+                navController.navigate(Routes.ScheduleDetail.route)
             },
             modifier = Modifier
                 .wrapContentSize(),
@@ -209,7 +223,8 @@ fun GroupDetailTitle(group: GroupInfo, onMenuClick: () -> Unit, navController: N
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(Color.White.copy(alpha = 0.5f))
-                        .padding(start = 6.dp, top = 8.dp, bottom = 8.dp, end = 10.dp),
+                        .padding(start = 6.dp, top = 8.dp, bottom = 8.dp, end = 10.dp)
+                        .clickable { navController.navigate(BottomNavItem.Group.route) },
                     tint = colorResource(id = R.color.text_high)
                 )
                 Icon(
@@ -248,7 +263,6 @@ fun GroupDetailTitle(group: GroupInfo, onMenuClick: () -> Unit, navController: N
             OutlinedButton(
                 onClick = {
                     val route = Routes.CreateGroupSchedule.createRoute(group.groupId)
-                    Log.d("GroupDetailTitle", "Navigating to: $route")
                     navController.navigate(route)
                 },
                 modifier = Modifier

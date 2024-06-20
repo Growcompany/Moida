@@ -1,5 +1,6 @@
 package com.example.moida.component
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -32,7 +33,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.moida.R
@@ -102,7 +102,7 @@ fun <T> MainCalendar(
                         isSelected = selectedDate == day.date,
                         hasEvents = hasEvents(day.date, events)
                     ) { selectedDay ->
-                        selectedDate  = selectedDay.date
+                        selectedDate = selectedDay.date
                         val title = if (selectedDate == today) {
                             "오늘의 일정"
                         } else {
@@ -121,7 +121,9 @@ fun <T> MainCalendar(
 }
 
 @Composable
-fun BottomSheetCalendar() {
+fun BottomSheetCalendar(
+    onDateClick: (LocalDate) -> Unit
+) {
     val currentMonth = remember { YearMonth.now() }
     val startMonth = remember { currentMonth.minusMonths(50) }
     val endMonth = remember { currentMonth.plusMonths(100) }
@@ -165,6 +167,7 @@ fun BottomSheetCalendar() {
                         isSelected = selectedDate == day.date
                     ) { selectedDay ->
                         selectedDate  = if (selectedDate == selectedDay.date) null else selectedDay.date
+                        onDateClick(selectedDate)
                     }
                 }
             },
@@ -255,6 +258,7 @@ fun MonthHeader(daysOfWeek: List<DayOfWeek>) {
         }
     }
 }
+
 @Composable
 fun MainDay(
     day: CalendarDay,
@@ -311,7 +315,6 @@ fun BottomSheetDay(
     isSelected: Boolean,
     onClick: (CalendarDay) -> Unit
 ) {
-    val selectedDate = remember { mutableStateOf<LocalDate?>(day.date) }
     val textColor = when {
         day.date == LocalDate.now() -> colorResource(id = R.color.main_blue)
         day.date.dayOfWeek == DayOfWeek.SUNDAY -> colorResource(id = R.color.error)
@@ -363,8 +366,8 @@ fun isHoliday(date: LocalDate): Boolean {
     return date in holidays
 }
 
-@Composable
-@Preview
-fun CalendarPreview() {
-    BottomSheetCalendar()
-}
+//@Composable
+//@Preview
+//fun CalendarPreview() {
+//    BottomSheetCalendar()
+//}

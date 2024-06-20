@@ -1,5 +1,3 @@
-package com.example.moida.screen
-
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -10,11 +8,14 @@ import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import com.example.moida.R
 import com.example.moida.model.Meeting
+import com.example.moida.screen.JoinMeetingScreen
+import com.example.moida.screen.MyMeetingsScreen
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun MyGroup(
@@ -37,12 +38,8 @@ fun MyGroup(
                     val meetingList = mutableListOf<Meeting>()
                     for (meetingSnapshot in dataSnapshot.children) {
                         val meeting = meetingSnapshot.getValue(Meeting::class.java)
-                        val meetingId = meetingSnapshot.key // 고유 ID 가져오기
-                        if (meeting != null && meetingId != null) {
-                            if (meeting.members.any { it["memberEmail"] == userEmail }) {
-                                val meetingWithId = meeting.copy(id = meetingId) // 고유 ID를 포함하여 Meeting 객체 생성
-                                meetingList.add(meetingWithId)
-                            }
+                        if (meeting != null && meeting.members.any { it["memberEmail"] == userEmail }) {
+                            meetingList.add(meeting)
                         }
                     }
                     meetings = meetingList
@@ -62,7 +59,7 @@ fun MyGroup(
         onFabMenuToggle = { isFabMenuExpanded = !isFabMenuExpanded },
         onJoinMeeting = {
             showJoinDialog = true
-            showJoinError = false // Reset error state when opening dialog
+            showJoinError = false
         }
     )
 
@@ -73,32 +70,18 @@ fun MyGroup(
                 showJoinError = false
             },
             onJoin = { inviteCode ->
-                database.child("groups").orderByChild("code").equalTo(inviteCode)
-                    .get().addOnSuccessListener {
-                        if (it.exists()) {
-                            val group = it.children.first().getValue(Meeting::class.java)
-                            group?.let { meeting ->
-                                val userEmail = currentUser?.email
-                                if (userEmail != null && !meeting.members.any { it["memberEmail"] == userEmail }) {
-                                    val updatedMeeting = meeting.copy(
-                                        members = meeting.members + mapOf("memberEmail" to userEmail)
-                                    )
-                                    val meetingKey = it.children.first().key
-                                    if (meetingKey != null) {
-                                        database.child("groups").child(meetingKey).setValue(updatedMeeting)
-                                    }
-                                }
-                                meetings = meetings + meeting
-                                showJoinDialog = false
-                                showJoinError = false
-                            }
-                        } else {
-                            errorMessage = "유효하지 않은 초대코드입니다."
-                            showJoinError = true
-                        }
-                    }.addOnFailureListener {
-                        Log.e("MyGroup", "Error getting data", it)
+                joinMeeting(inviteCode,
+                    onSuccess = { updatedMeeting ->
+                        meetings = meetings + updatedMeeting
+                        showJoinDialog = false
+                        showJoinError = false
+                    },
+                    onFailure = { exception ->
+                        Log.e("MyGroup", "Error joining meeting", exception)
+                        errorMessage = "유효하지 않은 초대코드입니다."
+                        showJoinError = true
                     }
+                )
             },
             errorMessage = errorMessage,
             showError = showJoinError
@@ -106,6 +89,110 @@ fun MyGroup(
     }
 }
 
+fun joinMeeting(inviteCode: String, onSuccess: (Meeting) -> Unit, onFailure: (Exception) -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    val realtimeDb = FirebaseDatabase.getInstance().reference
+    val auth = FirebaseAuth.getInstance()
+    val user = auth.currentUser
+
+    if (user != null) {
+        db.collection("users").document(user.uid).get()
+            .addOnSuccessListener { document ->
+                if (document != null) {
+                    val memberName = document.getString("name") ?: "Unknown"
+                    val memberEmail = user.email ?: "Unknown"
+                    val memberData = mapOf(
+                        "memberName" to memberName,
+                        "memberEmail" to memberEmail
+                    )
+
+                    db.collection("groups").whereEqualTo("code", inviteCode).limit(1)
+                        .get()
+                        .addOnSuccessListener { snapshot ->
+                            if (snapshot != null && !snapshot.isEmpty) {
+                                val meetingDocument = snapshot.documents.first()
+                                val meetingId = meetingDocument.id
+                                val meeting = meetingDocument.toObject(Meeting::class.java)
+
+                                if (meeting != null) {
+                                    // Check if the user is already a member in Firestore
+                                    val isMemberInFirestore = meeting.members.any { it["memberEmail"] == memberEmail }
+
+                                    if (!isMemberInFirestore) {
+                                        val updatedMembers = meeting.members + memberData
+
+                                        // Update Firestore
+                                        db.collection("groups").document(meetingId).update("members", updatedMembers)
+                                            .addOnSuccessListener {
+                                                // Check if the user is already a member in Realtime Database
+                                                realtimeDb.child("groups").child(meetingId).child("members").get()
+                                                    .addOnSuccessListener { dataSnapshot ->
+                                                        val members = dataSnapshot.children.mapNotNull { it.getValue(Map::class.java) as? Map<String, String> }
+                                                        val isMemberInRealtimeDb = members.any { it["memberEmail"] == memberEmail }
+
+                                                        if (!isMemberInRealtimeDb) {
+                                                            val updatedMembersInRealtimeDb = members + memberData
+
+                                                            // Update Realtime Database
+                                                            realtimeDb.child("groups").child(meetingId).child("members").setValue(updatedMembersInRealtimeDb)
+                                                                .addOnSuccessListener {
+                                                                    val updatedMeeting = meeting.copy(members = updatedMembers)
+                                                                    onSuccess(updatedMeeting)
+                                                                }
+                                                                .addOnFailureListener { e ->
+                                                                    onFailure(e)
+                                                                }
+                                                        } else {
+                                                            val updatedMeeting = meeting.copy(members = updatedMembers)
+                                                            onSuccess(updatedMeeting)
+                                                        }
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        onFailure(e)
+                                                    }
+                                            }
+                                            .addOnFailureListener { e ->
+                                                onFailure(e)
+                                            }
+                                    } else {
+                                        onFailure(Exception("User is already a member of this meeting"))
+                                    }
+                                } else {
+                                    onFailure(Exception("Meeting not found"))
+                                }
+                            } else {
+                                onFailure(Exception("Meeting not found"))
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            onFailure(e)
+                        }
+                }
+            }
+            .addOnFailureListener { e ->
+                onFailure(e)
+            }
+    } else {
+        onFailure(Exception("User not authenticated"))
+    }
+}
 fun generateUniqueCode(): String {
     return (100000..999999).random().toString()
 }
+
+fun getRandomImageRes(): Int {
+    val images = listOf(
+        R.drawable.sample_image1,
+        R.drawable.sample_image2,
+        R.drawable.sample_image3,
+        R.drawable.sample_image4,
+        R.drawable.sample_image5,
+        R.drawable.sample_image6,
+        R.drawable.sample_image7,
+        R.drawable.sample_image8,
+        R.drawable.sample_image9,
+        R.drawable.sample_image10
+    )
+    return images.random()
+}
+

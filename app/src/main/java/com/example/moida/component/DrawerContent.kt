@@ -1,18 +1,9 @@
 package com.example.moida.component
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.Icon
@@ -28,12 +19,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.moida.R
 import com.example.moida.model.GroupInfo
+import com.example.moida.model.Meeting
 import com.example.moida.ui.theme.Pretendard
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
-fun DrawerContent(group: GroupInfo, drawerState: DrawerState, scope: CoroutineScope) {
+fun DrawerContent(
+    group : GroupInfo,
+    drawerState: DrawerState,
+    scope: CoroutineScope,
+    onDeleteMeeting: (String) -> Unit,
+    onLeaveMeeting: (String) -> Unit
+) {
+    // `group` 객체를 로그로 확인합니다
+            Log.d("DrawerContent", "DrawerContent called with group: ${group}")
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -58,9 +58,8 @@ fun DrawerContent(group: GroupInfo, drawerState: DrawerState, scope: CoroutineSc
                     },
                 tint = colorResource(id = R.color.gray_600),
 
-            )
+                )
         }
-
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -72,7 +71,7 @@ fun DrawerContent(group: GroupInfo, drawerState: DrawerState, scope: CoroutineSc
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                .padding(start = 18.dp)
+                    .padding(start = 18.dp)
             )
             Icon(
                 painter = painterResource(id = R.drawable.edit),
@@ -84,6 +83,7 @@ fun DrawerContent(group: GroupInfo, drawerState: DrawerState, scope: CoroutineSc
                 tint = colorResource(id = R.color.text_medium)
             )
         }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 18.dp)
@@ -213,49 +213,63 @@ fun DrawerContent(group: GroupInfo, drawerState: DrawerState, scope: CoroutineSc
                     .align(Alignment.CenterHorizontally)
 
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.trashbin),
-                    contentDescription = "삭제",
+                Box(
+                    modifier = Modifier.clickable {
+                        onDeleteMeeting(group.groupId)
+                    }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 30.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.trashbin),
+                            contentDescription = "삭제",
+                            modifier = Modifier
+                                .size(18.dp),
+                            tint = colorResource(id = R.color.error)
+                        )
+                        Text(
+                            text = "모임 삭제",
+                            fontFamily = Pretendard,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = colorResource(id = R.color.error),
+                            modifier = Modifier.padding(start = 2.dp)
+                        )
+                    }
+                }
+                Divider(
+                    color = colorResource(id = R.color.gray_100),
                     modifier = Modifier
-                        .size(18.dp),
-                    tint = colorResource(id = R.color.error)
-
-                )
-                Text(
-                    text = "모임 삭제",
-                    fontFamily = Pretendard,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    color = colorResource(id = R.color.error),
-                    modifier = Modifier.padding(start = 2.dp)
+                        .width(1.dp)
+                        .height(18.dp)
                 )
                 Box(
-                    modifier = Modifier
-                        .padding(horizontal = 30.dp)
-                ){
-                    Divider(
-                        color = colorResource(id = R.color.gray_100),
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(18.dp)
-                    )
+                    modifier = Modifier.clickable {
+                        Log.d("DrawerContent", "onLeaveMeeting clicked for groupId: ${group.groupId}")
+                        onLeaveMeeting(group.groupId)
+                    }
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.exit),
+                            contentDescription = "나가기",
+                            modifier = Modifier
+                                .size(18.dp)
+                        )
+                        Text(
+                            text = "모임 나가기",
+                            fontFamily = Pretendard,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = colorResource(id = R.color.text_high),
+                            modifier = Modifier.padding(start = 2.dp)
+                        )
+                    }
                 }
-
-                Icon(
-                    painter = painterResource(id = R.drawable.exit),
-                    contentDescription = "나가기",
-                    modifier = Modifier
-                        .size(18.dp)
-
-                )
-                Text(
-                    text = "모임 나가기",
-                    fontFamily = Pretendard,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp,
-                    color = colorResource(id = R.color.text_high),
-                    modifier = Modifier.padding(start = 2.dp)
-                )
             }
         }
     }

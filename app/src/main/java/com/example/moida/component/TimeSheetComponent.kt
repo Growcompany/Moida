@@ -1,5 +1,6 @@
 package com.example.moida.component
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,9 +21,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.colorResource
@@ -46,7 +46,7 @@ fun HeadOfTime( //날짜+요일 3개 출력
     page: Int
 ) {
     val dateFormatter = DateTimeFormatter.ofPattern("MM.dd")
-    var currentDate = LocalDate.parse(startDate, DateTimeFormatter.ofPattern("yyyy.MM.dd"))
+    var currentDate = LocalDate.parse(startDate, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     var currentDay = startDay
 
     Column(
@@ -227,7 +227,7 @@ fun TimeBlockGroup( //화면에 대한 타임블록
     startDate: String
 ) {
     val timeList =
-        intArrayOf(0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5)
+        intArrayOf(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     Row(
         modifier = Modifier
@@ -247,7 +247,43 @@ fun TimeBlockGroup( //화면에 대한 타임블록
 }
 
 @Composable
+fun MemTimeBlock( //화면에 대한 타임블록
+    memberCount: Int,
+    timeList: IntArray,
+    onClick: () -> Unit
+) {
+    val box0 = 0
+    val box1 = memberCount / 3
+    val box2 = memberCount / 3 * 2
+
+    Column(
+        modifier = Modifier
+    ) {
+        for (index in 0 until 24) {
+            var backgroundColor = 0
+            if (timeList[index] == box0) backgroundColor = R.color.white
+            else if (timeList[index] <= box1) backgroundColor = R.color.blue3
+            else if (timeList[index] <= box2) backgroundColor = R.color.blue1
+            else if (timeList[index] <= memberCount) backgroundColor = R.color.main_blue
+
+            Box(
+                modifier = Modifier
+                    .size(width = 80.dp, height = 24.dp)
+                    .background(colorResource(id = backgroundColor))
+                    .border(width = 0.3.dp, color = colorResource(id = R.color.disabled))
+                    .clickable {
+                        //확정 dialog 보여주기
+                    }
+            )
+        }
+    }
+}
+
+@Composable
 fun TimeBlockInput(
+    isBtnClicked: Boolean,
+    timeList: IntArray,
+    onClick: (List<Boolean>)->Unit
 ) {
     val boxCount = 24
     val boxHeight = 24.dp
@@ -255,6 +291,18 @@ fun TimeBlockInput(
     var coloredBoxes by remember { mutableStateOf(List(boxCount) { false }) }
     val paintedBoxIndices = remember { mutableStateListOf<Int>() }
     var lastIndex by remember { mutableStateOf(-1) }
+
+    for (i in 0..23) {
+        if (timeList[i]==1) {
+            coloredBoxes = coloredBoxes.toMutableList().apply {
+                this[i] = true
+            }
+        } else {
+            coloredBoxes = coloredBoxes.toMutableList().apply {
+                this[i] = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -274,6 +322,7 @@ fun TimeBlockInput(
                             } else {
                                 paintedBoxIndices.add(index)
                             }
+                            onClick(coloredBoxes)
                             lastIndex = index
                         }
                     }
@@ -288,7 +337,7 @@ fun TimeBlockInput(
                     modifier = Modifier
                         .size(width = 80.dp, height = boxHeight)
                         .background(
-                            if (isColored) colorResource(id = R.color.blue3)
+                            if (isColored && !isBtnClicked) colorResource(id = R.color.blue3)
                             else colorResource(id = R.color.white)
                         )
                         .border(width = 0.3.dp, color = colorResource(id = R.color.disabled))
@@ -303,6 +352,7 @@ fun TimeBlockInput(
                             } else {
                                 paintedBoxIndices.add(index)
                             }
+                            onClick(coloredBoxes)
                         }
                 )
             }
@@ -310,25 +360,46 @@ fun TimeBlockInput(
     }
 }
 
+//fun initColoredBoxes(timeList: IntArray): List<Boolean> {
+//    var result = List(24) { false }.toMutableStateList()
+//    for (i in 0 until timeList.size) {
+//        if (timeList[i] == 0) result[i] = false
+//        else result[i] = true
+//    }
+//    return result
+//}
 
-@Composable
-fun TimeBlockInputGroup( //화면에 대한 타임블록
-    page: Int,
-    startDate: String
-) {
-    Row(
-        modifier = Modifier
-            .width(250.dp)
-            .padding(top = 13.dp, start = 10.dp)
-    ) {
-        if (page == 3) {
-            //서버로부터 해당 날에 대한 타임라인 받아옴
-            TimeBlockInput()
-        } else {
-            for (i in 1..3) {
-                //서버로부터 해당 날에 대한 타임라인 받아옴
-                TimeBlockInput()
-            }
-        }
-    }
-}
+//@Composable
+//fun TimeOfDayBlockInput( //화면에 대한 타임블록
+//     timeList: IntArray
+//) {
+//    Row(
+//        modifier = Modifier
+//            .width(250.dp)
+//            .padding(top = 13.dp, start = 10.dp)
+//    ) {
+//
+//    }
+//}
+
+//@Composable
+//fun TimeBlockInputGroup( //화면에 대한 타임블록
+//    page: Int,
+//    startDate: String
+//) {
+//    Row(
+//        modifier = Modifier
+//            .width(250.dp)
+//            .padding(top = 13.dp, start = 10.dp)
+//    ) {
+//        if (page == 3) {
+//            //서버로부터 해당 날에 대한 타임라인 받아옴
+//            TimeBlockInput()
+//        } else {
+//            for (i in 1..3) {
+//                //서버로부터 해당 날에 대한 타임라인 받아옴
+//                TimeBlockInput()
+//            }
+//        }
+//    }
+//}

@@ -1,6 +1,5 @@
 package com.example.moida.screen
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,7 +27,6 @@ import com.example.moida.component.UpcomingItem
 import com.example.moida.component.UpcomingItemList
 import com.example.moida.model.TodayViewModel
 import com.example.moida.model.UpcomingViewModel
-import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -45,6 +44,10 @@ fun MainHome(
     val todayDate = remember { LocalDate.now() }
     var selectedEvents by remember { mutableStateOf(groupedTodayEvents[todayDate].orEmpty()) }
     var title by remember { mutableStateOf("오늘의 일정") }
+
+    LaunchedEffect(todayEvents) {
+        selectedEvents = groupedTodayEvents[todayDate].orEmpty()
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -85,7 +88,7 @@ fun MainHome(
             }
         }
         item {
-            UpcomingItemList()
+            UpcomingItemList(upcomingViewModel)
         }
         // 대기 중인 일정 리스트
         item {

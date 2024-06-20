@@ -28,7 +28,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.moida.model.BottomNavigationItem
 import com.example.moida.model.NavGraph
-import com.example.moida.model.schedule.NewScheduleViewModel
 import com.example.moida.screen.TimeInput
 import com.example.moida.ui.theme.MoidaTheme
 import com.example.moida.ui.theme.Pretendard
@@ -47,7 +46,6 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val newScheduleViewModel = NewScheduleViewModel(application = Application())
                     val currentRoute = navBackStackEntry?.destination?.route
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
