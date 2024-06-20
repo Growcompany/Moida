@@ -1,6 +1,7 @@
 package com.example.moida.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,8 +27,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.moida.R
 import com.example.moida.model.GroupItemData
+import com.example.moida.model.Routes
 import com.example.moida.model.TodayItemData
 import com.example.moida.model.UpcomingItemData
 import com.example.moida.model.UpcomingViewModel
@@ -93,7 +96,7 @@ fun TodayItem(item: TodayItemData) {
 }
 
 @Composable
-fun UpcomingItem(item: UpcomingItemData) {
+fun UpcomingItem(item: UpcomingItemData, navController: NavHostController) {
     ElevatedCard(
         elevation = CardDefaults.cardElevation(
             defaultElevation = 6.dp
@@ -107,6 +110,9 @@ fun UpcomingItem(item: UpcomingItemData) {
         ) {
         Box(
             modifier = Modifier.padding(all = 20.dp)
+                .clickable {
+                    navController.navigate("${Routes.TimeSheet.route}?scheduleId=${item.scheduleId}")
+                },
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -328,11 +334,11 @@ fun ItemPreview() {
                 "2024.05.28", "12:00", "2차 스터디", "compose 스터디"
             )
         )
-        UpcomingItem(
-            item = UpcomingItemData(
-                "2024.05.10", "2024.05.17", "3차 스터디", "compose 스터디"
-            )
-        )
+//        UpcomingItem(
+//            item = UpcomingItemData(
+//                "2024.05.10", "2024.05.17", "3차 스터디", "compose 스터디"
+//            )
+//        )
         GroupItem(
             item = GroupItemData(
                 "1차 스터디", "2024.05.31", "12:00"
