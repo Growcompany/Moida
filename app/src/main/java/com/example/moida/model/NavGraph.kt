@@ -1,5 +1,7 @@
 package com.example.moida.model
 
+import GroupDetail
+import MyGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,11 +30,9 @@ import com.example.moida.screen.ChangedName
 import com.example.moida.screen.CreateGroupSchedule
 import com.example.moida.screen.CreateMeetingScreen
 import com.example.moida.screen.CreateMySchedule
-import com.example.moida.screen.GroupDetail
 import com.example.moida.screen.JoinMembership
 import com.example.moida.screen.LaunchPage
 import com.example.moida.screen.MainHome
-import com.example.moida.screen.MyGroup
 import com.example.moida.screen.MyInfor
 import com.example.moida.screen.MyPage
 import com.example.moida.screen.ResignMemberShip
