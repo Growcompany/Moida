@@ -27,14 +27,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import com.example.moida.R
 import com.example.moida.model.BottomNavItem
 import com.example.moida.model.Routes
 import com.example.moida.model.schedule.FixedScheduleData
 import com.example.moida.model.schedule.FixedScheduleViewModel
+import com.example.moida.screen.SignIn
+import com.example.moida.ui.theme.MoidaTheme
 import com.example.moida.ui.theme.Pretendard
 import java.time.format.DateTimeFormatter
 
@@ -155,7 +159,7 @@ fun ScheduleBottomSheet(
                         .padding(vertical = 13.dp)
                         .clickable {
                             val res = FixedScheduleData()
-                            fixedScheduleViewModel.GetFixedSchedule(scheduleId){
+                            fixedScheduleViewModel.GetFixedSchedule(scheduleId) {
                                 res.scheduleId = scheduleId
                                 res.scheduleName = it.scheduleName
                                 res.scheduleDate = it.scheduleDate

@@ -8,6 +8,7 @@ data class TodayItemData(
 )
 
 data class UpcomingItemData(
+    val scheduleId: Int = 0,
     val startDate: String = "",
     val endDate: String = "",
     val name: String = "",

@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -27,6 +28,13 @@ import com.example.moida.component.UpcomingItem
 import com.example.moida.component.UpcomingItemList
 import com.example.moida.model.TodayViewModel
 import com.example.moida.model.UpcomingViewModel
+import com.example.moida.model.UpcomingViewModelFactory
+import com.example.moida.model.schedule.Repository
+import com.example.moida.model.schedule.ScheduleViewModel
+import com.example.moida.model.schedule.ScheduleViewModelFactory
+import com.google.firebase.Firebase
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.database
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -34,8 +42,13 @@ import java.time.format.DateTimeFormatter
 fun MainHome(
     navController: NavHostController,
     todayViewModel: TodayViewModel = viewModel(),
-    upcomingViewModel: UpcomingViewModel = viewModel(),
+    //upcomingViewModel: UpcomingViewModel = viewModel(),
 ) {
+    val databaseReference = remember { FirebaseDatabase.getInstance().reference.child("scheduleData") }
+    val repository = remember { Repository(databaseReference) }
+    val scheduleViewModel: ScheduleViewModel = viewModel(factory = ScheduleViewModelFactory(repository))
+    val upcomingViewModel: UpcomingViewModel = viewModel(factory = UpcomingViewModelFactory(scheduleViewModel))
+
     val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
     val todayEvents by todayViewModel.itemList.collectAsState()
     val upcomingEvents by upcomingViewModel.itemList.collectAsState()
@@ -44,6 +57,15 @@ fun MainHome(
     val todayDate = remember { LocalDate.now() }
     var selectedEvents by remember { mutableStateOf(groupedTodayEvents[todayDate].orEmpty()) }
     var title by remember { mutableStateOf("오늘의 일정") }
+
+    val context = LocalContext.current
+    val viewModel: SignInViewModel = viewModel(factory = SignInViewModelFactory(context))
+    val userName by viewModel.userName.collectAsState()
+    LaunchedEffect(userName) {
+        if (userName?.isNotEmpty() == true) {
+            userName?.let { upcomingViewModel.fetchAndAddUserData(it) }
+        }
+    }
 
     LaunchedEffect(todayEvents) {
         selectedEvents = groupedTodayEvents[todayDate].orEmpty()
@@ -98,7 +120,7 @@ fun MainHome(
                     .padding(bottom = 100.dp)
             ){
                 upcomingEvents.forEach {item ->
-                    UpcomingItem(item)
+                    UpcomingItem(item, navController)
                     Spacer(modifier = Modifier.height(10.dp))
                 }
             }
