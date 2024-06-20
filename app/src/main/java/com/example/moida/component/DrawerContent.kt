@@ -4,11 +4,15 @@ import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -17,23 +21,41 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.moida.R
 import com.example.moida.model.GroupInfo
 import com.example.moida.model.Meeting
 import com.example.moida.ui.theme.Pretendard
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
 fun DrawerContent(
-    group : GroupInfo,
+    group: GroupInfo,
     drawerState: DrawerState,
     scope: CoroutineScope,
     onDeleteMeeting: (String) -> Unit,
     onLeaveMeeting: (String) -> Unit
 ) {
-    // `group` 객체를 로그로 확인합니다
-            Log.d("DrawerContent", "DrawerContent called with group: ${group}")
+    // 초대 코드 다이얼로그 상태 관리
+    var showInviteCodeDialog by remember { mutableStateOf(false) }
+    var inviteCode by remember { mutableStateOf("") }
+
+    fun fetchInviteCode(groupId: String) {
+        val db = FirebaseFirestore.getInstance()
+        db.collection("groups").document(groupId).get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    inviteCode = document.getString("code") ?: "코드 없음"
+                    showInviteCodeDialog = true
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.w("DrawerContent", "Error fetching invite code", e)
+            }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -44,7 +66,7 @@ fun DrawerContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp, end = 20.dp)
-        ){
+        ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_x_close),
                 contentDescription = "닫기",
@@ -57,14 +79,13 @@ fun DrawerContent(
                         }
                     },
                 tint = colorResource(id = R.color.gray_600),
-
-                )
+            )
         }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(top = 27.dp)
-        ){
+        ) {
             Text(
                 text = group.groupName,
                 fontFamily = Pretendard,
@@ -139,6 +160,9 @@ fun DrawerContent(
                     modifier = Modifier
                         .padding(start = 6.dp)
                         .padding(vertical = 13.dp)
+                        .clickable {
+                            fetchInviteCode(group.groupId)
+                        }
                 )
             }
         }
@@ -211,7 +235,6 @@ fun DrawerContent(
                 modifier = Modifier
                     .padding(top = 19.dp)
                     .align(Alignment.CenterHorizontally)
-
             ) {
                 Box(
                     modifier = Modifier.clickable {
@@ -273,4 +296,73 @@ fun DrawerContent(
             }
         }
     }
+
+    // 초대 코드 다이얼로그 표시
+    if (showInviteCodeDialog) {
+        Log.d("DrawerContent", "Displaying invite code dialog with code: $inviteCode")
+        Dialog(onDismissRequest = { showInviteCodeDialog = false }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White, shape = MaterialTheme.shapes.medium)
+                    .padding(16.dp)
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp),
+                        contentAlignment = Alignment.TopEnd
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_x_close),
+                            contentDescription = "닫기",
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clickable {
+                                    showInviteCodeDialog = false
+                                },
+                            tint = colorResource(id = R.color.gray_600)
+                        )
+                    }
+                    Text(
+                        text = "모임 코드는 다음과 같습니다.",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                    Text(
+                        text = inviteCode,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                Divider(
+                    color = colorResource(id = R.color.gray_600),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                    Text(
+                    text = "초대하고자 하는 사람에게 공유해주세요!",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                Button(
+                    onClick = { showInviteCodeDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorResource(id = R.color.main_blue)
+                    )
+                ) {
+                    Text("확인", color = Color.White)
+                }
+            }
+        }
+    }
+}
 }
