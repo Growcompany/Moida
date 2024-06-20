@@ -11,6 +11,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import com.example.moida.component.TodayItemList
 import com.example.moida.model.GroupDetailViewModel
 import com.example.moida.model.GroupDetailViewModelFactory
 import com.example.moida.model.Meeting
+import com.example.moida.model.UpcomingViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -41,6 +43,13 @@ fun GroupDetail(
     val groupDetailViewModel: GroupDetailViewModel = viewModel(
         factory = GroupDetailViewModelFactory(meeting)
     ) // 각 그룹에 들어올 때마다 넘겨받은 meeting 정보로 뷰모델을 세팅해줌
+
+    val upcomingViewModel: UpcomingViewModel = viewModel()
+
+    // Fetch upcoming items for the group
+    LaunchedEffect(Unit) {
+        upcomingViewModel.fetchUpcomingItems(meeting.id)
+    }
 
     val groupInfo by groupDetailViewModel.groupInfo.collectAsState()
     val itemList by groupDetailViewModel.itemList.collectAsState()
